@@ -1,0 +1,164 @@
+# Simple mapping example for Elite Dangerous
+bindings:
+  - input: "x55.axes.0"
+    target: "axis:AXIS_X"
+    props:
+      invert: false
+      scale: 1.0
+  - input: "x55.axes.1"
+    target: "axis:AXIS_Y"
+    props:
+      invert: true
+      scale: 1.0
+  - input: "x55.axes.2"
+    target: "axis:AXIS_RZ"
+    props:
+      invert: false
+      scale: 1.0
+  - input: "x55.button.0"
+    target: "button:1"
+  - input: "x55.button.1"
+    target: "button:2"
+  - input: "x55.button.2"
+    target: "button:3"
+  - input: "x55.button.3"
+    target: "button:4"
+  - input: "x55.button.4"
+    target: "button:5"
+  - input: "x55.button.5"
+    target: "button:6"
+  - input: "x55.button.6"
+    target: "button:7"
+  - input: "x55.button.7"
+    target: "button:8"
+  - input: "x55.button.8"
+    target: "button:9"
+  - input: "x55.button.9"
+    target: "button:10"
+  - input: "x55.button.10"
+    target: "button:11"
+  - input: "x55.button.11"
+    target: "button:12"
+  - input: "x55.button.12"
+    target: "button:13"
+  - input: "x55.button.13"
+    target: "button:14"
+  - input: "x55.hat.0"
+    target: "pov:0"
+  
+  # Flight Panel switches - toggle mode (momentary pulse on change)
+  - input: "flightpanel.switch.2"
+    target: "button:17"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+  
+  - input: "flightpanel.switch.3"
+    target: "button:18"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+
+  - input: "flightpanel.switch.4"
+    target: "button:19"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+  
+  - input: "flightpanel.switch.5"
+    target: "button:20"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+
+  - input: "flightpanel.switch.6"
+    target: "button:21"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+
+  - input: "flightpanel.switch.7"
+    target: "button:22"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+
+  - input: "flightpanel.switch.8"
+    target: "button:23"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+
+  - input: "flightpanel.switch.9"
+    target: "button:24"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+
+  - input: "flightpanel.switch.10"
+    target: "button:25"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+
+  - input: "flightpanel.switch.11"
+    target: "button:26"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+
+  - input: "flightpanel.switch.12"
+    target: "button:27"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+
+  - input: "flightpanel.switch.13"
+    target: "button:28"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+
+  - input: "flightpanel.switch.14"
+    target: "button:29"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+
+  - input: "flightpanel.switch.15"
+    target: "button:30"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+
+  - input: "flightpanel.switch.16"
+    target: "button:31"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+
+  - input: "flightpanel.switch.17"
+    target: "button:32"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+
+  - input: "flightpanel.switch.18"
+    target: "button:33"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+
+  - input: "flightpanel.switch.19"
+    target: "button:34"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+  
+  # Flight Panel switches - direct mode (button follows switch state)
+  - inputs: 
+      - "flightpanel.switch.0"
+      - "flightpanel.switch.1"
+    target: "button:15"
+    props:
+      mode: "direct"
