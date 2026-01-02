@@ -46,119 +46,69 @@ bindings:
   - input: "x55.hat.0"
     target: "pov:0"
   
-  # Flight Panel switches - toggle mode (momentary pulse on change)
-  - input: "flightpanel.switch.2"
+  # CH Throttle - 1 throttle axis and 12 buttons
+  - input: "ch_throttle.axes.0"
+    target: "axis:AXIS_Z"
+    props:
+      invert: true
+      scale: 1.0
+  - input: "ch_throttle.button.0"
+    target: "button:15"
+  - input: "ch_throttle.button.1"
+    target: "button:16"
+  - input: "ch_throttle.button.2"
     target: "button:17"
-    props:
-      mode: "toggle"
-      pulse_ms: 100
-  
-  - input: "flightpanel.switch.3"
+  - input: "ch_throttle.button.3"
     target: "button:18"
-    props:
-      mode: "toggle"
-      pulse_ms: 100
-
-  - input: "flightpanel.switch.4"
+  - input: "ch_throttle.button.4"
     target: "button:19"
-    props:
-      mode: "toggle"
-      pulse_ms: 100
-  
-  - input: "flightpanel.switch.5"
+  - input: "ch_throttle.button.5"
     target: "button:20"
-    props:
-      mode: "toggle"
-      pulse_ms: 100
-
-  - input: "flightpanel.switch.6"
+  - input: "ch_throttle.button.6"
     target: "button:21"
-    props:
-      mode: "toggle"
-      pulse_ms: 100
-
-  - input: "flightpanel.switch.7"
+  - input: "ch_throttle.button.7"
     target: "button:22"
-    props:
-      mode: "toggle"
-      pulse_ms: 100
-
-  - input: "flightpanel.switch.8"
+  - input: "ch_throttle.button.8"
     target: "button:23"
-    props:
-      mode: "toggle"
-      pulse_ms: 100
-
-  - input: "flightpanel.switch.9"
+  - input: "ch_throttle.button.9"
     target: "button:24"
-    props:
-      mode: "toggle"
-      pulse_ms: 100
-
-  - input: "flightpanel.switch.10"
+  - input: "ch_throttle.button.10"
     target: "button:25"
-    props:
-      mode: "toggle"
-      pulse_ms: 100
-
-  - input: "flightpanel.switch.11"
+  - input: "ch_throttle.button.11"
     target: "button:26"
-    props:
-      mode: "toggle"
-      pulse_ms: 100
-
-  - input: "flightpanel.switch.12"
+  
+  # Flight Panel switches - toggle mode (momentary pulse on change)
+  - input: "flightpanel.switch.5"
     target: "button:27"
     props:
       mode: "toggle"
       pulse_ms: 100
 
-  - input: "flightpanel.switch.13"
+  - input: "flightpanel.switch.12"
     target: "button:28"
     props:
       mode: "toggle"
       pulse_ms: 100
 
-  - input: "flightpanel.switch.14"
+  - input: "flightpanel.switch.18"
     target: "button:29"
     props:
       mode: "toggle"
       pulse_ms: 100
+      trigger: on_press
 
-  - input: "flightpanel.switch.15"
+  - input: "flightpanel.switch.19"
     target: "button:30"
     props:
       mode: "toggle"
       pulse_ms: 100
-
-  - input: "flightpanel.switch.16"
-    target: "button:31"
-    props:
-      mode: "toggle"
-      pulse_ms: 100
-
-  - input: "flightpanel.switch.17"
-    target: "button:32"
-    props:
-      mode: "toggle"
-      pulse_ms: 100
-
-  - input: "flightpanel.switch.18"
-    target: "button:33"
-    props:
-      mode: "toggle"
-      pulse_ms: 100
-
-  - input: "flightpanel.switch.19"
-    target: "button:34"
-    props:
-      mode: "toggle"
-      pulse_ms: 100
+      trigger: on_press
   
   # Flight Panel switches - direct mode (button follows switch state)
   - inputs: 
       - "flightpanel.switch.0"
       - "flightpanel.switch.1"
-    target: "button:15"
+    target: "button:31"
     props:
-      mode: "direct"
+      mode: "toggle"
+      pulse_ms: 100
