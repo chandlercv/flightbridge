@@ -92,6 +92,7 @@ class Mapper:
                         # Get mapping mode and pulse duration
                         mode = props.get("mode", "direct")  # "direct" or "toggle"
                         pulse_ms = props.get("pulse_ms", 100)  # default 100ms pulse
+                        trigger = props.get("trigger", "on_change")  # "on_press", "on_release", or "on_change"
                         
                         if tgt.startswith("button:"):
                             btn_id = int(tgt.split(":", 1)[1])
@@ -102,15 +103,42 @@ class Mapper:
                                 prev_st = self._prev_state.get(state_key, None)
                                 
                                 if prev_st is not None and prev_st != st:
-                                    # State changed - start pulse
-                                    self._pulse_timers[btn_id] = time.time() + (pulse_ms / 1000.0)
-                                    LOG.debug("flightpanel.switch.%d changed %s->%s, pulsing button:%d for %dms", 
-                                             idx, prev_st, st, btn_id, pulse_ms)
+                                    # State changed - check trigger condition
+                                    should_trigger = False
+                                    if trigger == "on_change":
+                                        should_trigger = True
+                                    elif trigger == "on_press" and st is True:
+                                        should_trigger = True
+                                    elif trigger == "on_release" and st is False:
+                                        should_trigger = True
+                                    
+                                    if should_trigger:
+                                        self._pulse_timers[btn_id] = time.time() + (pulse_ms / 1000.0)
+                                        LOG.debug("flightpanel.switch.%d changed %s->%s (trigger:%s), pulsing button:%d for %dms", 
+                                                 idx, prev_st, st, trigger, btn_id, pulse_ms)
                                 
                                 self._prev_state[state_key] = st
                             else:
                                 # Direct mode: store state for later application
                                 self._prev_state[state_key] = st
+                    if src.startswith("ch_throttle.axes") and device_name == "ch_throttle":
+                        idx = int(src.split(".")[-1])
+                        val = state.get("axes", {}).get(idx, 0.0)
+                        val = float(val)
+                        if props.get("invert"):
+                            val = -val
+                        val = val * float(props.get("scale", 1.0))
+                        # clamp
+                        val = max(-1.0, min(1.0, val))
+                        if tgt.startswith("axis:"):
+                            axis_name = tgt.split(":", 1)[1]
+                            cmd.axes[axis_name] = val
+                    if src.startswith("ch_throttle.button") and device_name == "ch_throttle":
+                        idx = int(src.split(".")[-1])
+                        st = bool(state.get("buttons", {}).get(idx, False))
+                        if tgt.startswith("button:"):
+                            btn_id = int(tgt.split(":", 1)[1])
+                            cmd.buttons[btn_id] = st
                     if src.startswith("flightpanel.axis") and device_name == "flightpanel":
                         idx = int(src.split(".")[-1])
                         val = state.get("axes", {}).get(idx, 0.0)
