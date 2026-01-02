@@ -1,0 +1,1 @@
+- implement multiple inputs to toggle mode
