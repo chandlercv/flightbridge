@@ -1,0 +1,4 @@
+pyyaml
+hidapi
+pygame
+pyinstaller
