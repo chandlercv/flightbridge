@@ -1,4 +1,7 @@
 # Simple mapping example for Elite Dangerous
+vjoy_devices:
+  - 1
+  - 2
 bindings:
   - input: "x55.axes.0"
     target: "axis:AXIS_X"
@@ -8,7 +11,7 @@ bindings:
   - input: "x55.axes.1"
     target: "axis:AXIS_Y"
     props:
-      invert: true
+      invert: false
       scale: 1.0
   - input: "x55.axes.2"
     target: "axis:AXIS_RZ"
@@ -50,7 +53,7 @@ bindings:
   - input: "ch_throttle.axes.0"
     target: "axis:AXIS_Z"
     props:
-      invert: true
+      invert: false
       scale: 1.0
   - input: "ch_throttle.button.0"
     target: "button:15"
@@ -78,37 +81,93 @@ bindings:
     target: "button:26"
   
   # Flight Panel switches - toggle mode (momentary pulse on change)
-  - input: "flightpanel.switch.5"
+  - input: "flightpanel.switch.2"
     target: "button:27"
     props:
       mode: "toggle"
       pulse_ms: 100
 
-  - input: "flightpanel.switch.12"
+  - input: "flightpanel.switch.3"
     target: "button:28"
     props:
       mode: "toggle"
       pulse_ms: 100
 
-  - input: "flightpanel.switch.18"
+  - input: "flightpanel.switch.4"
     target: "button:29"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+
+  - input: "flightpanel.switch.5"
+    target: "button:30"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+
+  - input: "flightpanel.switch.18"
+    target: "button:31"
     props:
       mode: "toggle"
       pulse_ms: 100
       trigger: on_press
 
   - input: "flightpanel.switch.19"
-    target: "button:30"
+    target: "button:31"
     props:
       mode: "toggle"
       pulse_ms: 100
       trigger: on_press
   
-  # Flight Panel switches - direct mode (button follows switch state)
+  # Flight Panel switches - toggle mode with all_same logic
+  # Pulses button when both switches are in same state (both on OR both off)
   - inputs: 
       - "flightpanel.switch.0"
       - "flightpanel.switch.1"
-    target: "button:31"
+    target: "button:32"
+    props:
+      mode: "toggle"
+      logic: "all_same"  # Fires when ALL inputs are true OR ALL inputs are false
+      pulse_ms: 100
+      
+  - input: "flightpanel.switch.6"
+    target: "button:33"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+
+  - input: "flightpanel.switch.7"
+    target: "button:34"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+
+  - input: "flightpanel.switch.8"
+    target: "button:35"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+
+  - input: "flightpanel.switch.9"
+    target: "button:36"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+
+  - input: "flightpanel.switch.10"
+    target: "button:37"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+
+  - input: "flightpanel.switch.11"
+    target: "button:38"
+    props:
+      mode: "toggle"
+      pulse_ms: 100
+
+  - input: "flightpanel.switch.12"
+    target: "button:39"
     props:
       mode: "toggle"
       pulse_ms: 100

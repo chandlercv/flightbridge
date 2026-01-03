@@ -48,10 +48,19 @@ def main():
         logging.getLogger(logger_name).setLevel(logging.DEBUG)
 
     mapper = Mapper.load_profile(args.profile)
-    
-    # Support multiple vJoy devices for >32 buttons
+
+    # Determine vJoy devices: CLI overrides profile, else default single
+    profile_vjoy_devices = mapper.profile.get("vjoy_devices") if hasattr(mapper, "profile") else None
     if args.vjoy_devices:
-        vjoy = VJoyOutput(hz=args.hz, device_ids=args.vjoy_devices)
+        vjoy_devices = args.vjoy_devices
+    elif profile_vjoy_devices:
+        vjoy_devices = profile_vjoy_devices
+    else:
+        vjoy_devices = None
+
+    # Support multiple vJoy devices for >32 buttons
+    if vjoy_devices:
+        vjoy = VJoyOutput(hz=args.hz, device_ids=vjoy_devices)
     else:
         vjoy = VJoyOutput(args.vjoy_id, hz=args.hz)
 
@@ -60,10 +69,18 @@ def main():
     ch_throttle = CHThrottleReader()
 
     stop_event = threading.Event()
+    state_lock = threading.Lock()
+    accumulated_state = {}  # Store merged state from all devices
 
     def on_state(state):
-        cmd = mapper.map_state_to_vjoy(state)
-        vjoy.apply(cmd)
+        with state_lock:
+            # Merge this device's state into accumulated state
+            device_name = state.get("device")
+            accumulated_state[device_name] = state
+            
+            # Map the full accumulated state
+            cmd = mapper.map_state_to_vjoy_full(accumulated_state)
+            vjoy.apply(cmd)
 
     x55.subscribe(on_state)
     panel.subscribe(on_state)

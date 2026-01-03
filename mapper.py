@@ -19,6 +19,22 @@ class Mapper:
             data = yaml.safe_load(f)
         return cls(data)
 
+    def map_state_to_vjoy_full(self, all_states: dict) -> VJoyCommand:
+        """Map accumulated state from all devices to vJoy command"""
+        cmd = VJoyCommand()
+        
+        # Process each device's state
+        for device_name, state in all_states.items():
+            state_with_device = {**state, "device": device_name}
+            device_cmd = self.map_state_to_vjoy(state_with_device)
+            
+            # Merge commands (buttons, axes, povs)
+            cmd.buttons.update(device_cmd.buttons)
+            cmd.axes.update(device_cmd.axes)
+            cmd.povs.update(device_cmd.povs)
+        
+        return cmd
+
     def map_state_to_vjoy(self, state) -> VJoyCommand:
         # Very small reference implementation: look for axis bindings and button bindings
         cmd = VJoyCommand()
@@ -160,6 +176,8 @@ class Mapper:
                     # Only process flight panel multi-input bindings when flight panel event arrives
                     if device_name == "flightpanel":
                         mode = props.get("mode", "direct")
+                        logic = props.get("logic", "and")  # "and" or "all_same"
+                        pulse_ms = props.get("pulse_ms", 100)
                         
                         # Update state for any flight panel inputs in this binding
                         for src_item in src_list:
@@ -168,6 +186,34 @@ class Mapper:
                                 st = bool(state.get("buttons", {}).get(idx, False))
                                 state_key = f"flightpanel.switch.{idx}"
                                 self._prev_state[state_key] = st
+                        
+                        # Handle toggle mode with all_same logic
+                        if mode == "toggle" and logic == "all_same" and tgt.startswith("button:"):
+                            btn_id = int(tgt.split(":", 1)[1])
+                            multi_state_key = f"multi:{tgt}"  # Track combined state
+                            
+                            # Calculate current condition
+                            states = []
+                            for src_item in src_list:
+                                if src_item.startswith("flightpanel.switch"):
+                                    idx = int(src_item.split(".")[-1])
+                                    state_key = f"flightpanel.switch.{idx}"
+                                    states.append(self._prev_state.get(state_key, False))
+                            
+                            current_condition = False
+                            if states:
+                                all_true = all(states)
+                                all_false = not any(states)
+                                current_condition = all_true or all_false
+                            
+                            # Check if condition changed
+                            prev_condition = self._prev_state.get(multi_state_key, False)
+                            if prev_condition != current_condition and current_condition:
+                                # Condition became true - pulse the button
+                                self._pulse_timers[btn_id] = time.time() + (pulse_ms / 1000.0)
+                                LOG.debug("multi-input ALL_SAME toggle: button:%d pulsing for %dms", btn_id, pulse_ms)
+                            
+                            self._prev_state[multi_state_key] = current_condition
                 except Exception:
                     LOG.exception("mapping error for multi-input binding %s", b)
         
@@ -206,22 +252,45 @@ class Mapper:
                             if state_key in self._prev_state:
                                 cmd.buttons[btn_id] = self._prev_state[state_key]
                     
-                    # Multiple inputs direct mode (AND logic)
+                    # Multiple inputs direct mode (AND logic or ALL_SAME logic)
                     elif src_list:
-                        all_true = True
-                        for src_item in src_list:
-                            if src_item.startswith("flightpanel.switch"):
-                                idx = int(src_item.split(".")[-1])
-                                state_key = f"flightpanel.switch.{idx}"
-                                # If state not yet set, default to False
-                                if state_key not in self._prev_state:
-                                    all_true = False
-                                    break
-                                if not self._prev_state[state_key]:
-                                    all_true = False
-                                    break
-                        cmd.buttons[btn_id] = all_true
-                        LOG.debug("multi-input AND condition for button:%d = %s", btn_id, all_true)
+                        logic = props.get("logic", "and")  # "and" or "all_same"
+                        
+                        if logic == "all_same":
+                            # Fire when ALL inputs are true OR ALL inputs are false
+                            states = []
+                            for src_item in src_list:
+                                if src_item.startswith("flightpanel.switch"):
+                                    idx = int(src_item.split(".")[-1])
+                                    state_key = f"flightpanel.switch.{idx}"
+                                    # If state not yet set, default to False
+                                    states.append(self._prev_state.get(state_key, False))
+                            
+                            # Check if all states are the same
+                            if states:
+                                all_true = all(states)
+                                all_false = not any(states)
+                                cmd.buttons[btn_id] = all_true or all_false
+                                LOG.debug("multi-input ALL_SAME condition for button:%d = %s (all_true=%s, all_false=%s)", 
+                                         btn_id, all_true or all_false, all_true, all_false)
+                            else:
+                                cmd.buttons[btn_id] = False
+                        else:
+                            # Default AND logic
+                            all_true = True
+                            for src_item in src_list:
+                                if src_item.startswith("flightpanel.switch"):
+                                    idx = int(src_item.split(".")[-1])
+                                    state_key = f"flightpanel.switch.{idx}"
+                                    # If state not yet set, default to False
+                                    if state_key not in self._prev_state:
+                                        all_true = False
+                                        break
+                                    if not self._prev_state[state_key]:
+                                        all_true = False
+                                        break
+                            cmd.buttons[btn_id] = all_true
+                            LOG.debug("multi-input AND condition for button:%d = %s", btn_id, all_true)
         
         LOG.debug("mapped state -> %s", cmd)
         return cmd
