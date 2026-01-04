@@ -16,3 +16,4 @@ class VJoyCommand:
     axes: Dict[str, float] = field(default_factory=dict)  # axis name -> -1..1
     buttons: Dict[int, bool] = field(default_factory=dict)  # button id -> state
     povs: Dict[int, int] = field(default_factory=dict)  # pov id -> degrees or -1
+    keys: Dict[str, bool] = field(default_factory=dict)  # key name -> pressed state

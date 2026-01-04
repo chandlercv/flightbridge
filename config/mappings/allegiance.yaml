@@ -38,14 +38,67 @@ bindings:
     target: "button:9"
   - input: "x55.button.9"
     target: "button:10"
-  - input: "x55.button.10"
+    
+  - inputs: 
+      - "x55.button.10"
+      - "flightpanel.button.13"
     target: "button:11"
-  - input: "x55.button.11"
+    props:
+      mode: "toggle"
+      logic: "all_same"  # Fires when ALL inputs are true OR ALL inputs are false
+      pulse_ms: 100
+  - inputs: 
+      - "x55.button.11"
+      - "flightpanel.button.13"    
     target: "button:12"
-  - input: "x55.button.12"
+    props:
+      mode: "toggle"
+      logic: "all_same"  # Fires when ALL inputs are true OR ALL inputs are false
+      pulse_ms: 100
+  - inputs: 
+      - "x55.button.12"
+      - "flightpanel.button.13"
     target: "button:13"
-  - input: "x55.button.13"
+  - inputs: 
+      - "x55.button.13"
+      - "flightpanel.button.13"
     target: "button:14"
+
+  - inputs: 
+      - "x55.button.10"
+      - "flightpanel.button.14"
+    target: "key:space"
+    props:
+      mode: "toggle"
+      logic: "all_same"
+      pulse_ms: 50
+  - inputs: 
+      - "x55.button.11"
+      - "flightpanel.button.14"
+    target: "key:space"
+    props:
+      mode: "toggle"
+      logic: "all_same"
+      pulse_ms: 50
+  - inputs: 
+      - "x55.button.12"
+      - "flightpanel.button.14"
+    target: "key:space"
+    props:
+      mode: "toggle"
+      logic: "all_same"
+      pulse_ms: 50
+  - inputs: 
+      - "x55.button.13"
+      - "flightpanel.button.14"
+    target: "key:space"
+    props:
+      mode: "toggle"
+      logic: "all_same"
+      pulse_ms: 50
+
+
+  
   - input: "x55.hat.0"
     target: "pov:0"
   
@@ -158,8 +211,8 @@ bindings:
     target: "button:37"
     props:
       mode: "toggle"
-      pulse_ms: 100
-
+      pulse_ms: 100  
+ 
   - input: "flightpanel.switch.11"
     target: "button:38"
     props:

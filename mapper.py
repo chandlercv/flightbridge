@@ -28,10 +28,11 @@ class Mapper:
             state_with_device = {**state, "device": device_name}
             device_cmd = self.map_state_to_vjoy(state_with_device)
             
-            # Merge commands (buttons, axes, povs)
+            # Merge commands (buttons, axes, povs, keys)
             cmd.buttons.update(device_cmd.buttons)
             cmd.axes.update(device_cmd.axes)
             cmd.povs.update(device_cmd.povs)
+            cmd.keys.update(device_cmd.keys)
         
         return cmd
 
@@ -72,6 +73,9 @@ class Mapper:
                         if tgt.startswith("button:"):
                             btn_id = int(tgt.split(":", 1)[1])
                             cmd.buttons[btn_id] = st
+                        elif tgt.startswith("key:"):
+                            key_name = tgt.split(":", 1)[1]
+                            cmd.keys[key_name] = st
                     if src.startswith("x55.hat") and device_name == "x55":
                         idx = int(src.split(".")[-1])
                         hat_val = state.get("hats", {}).get(idx, (-1, -1))
@@ -137,6 +141,34 @@ class Mapper:
                             else:
                                 # Direct mode: store state for later application
                                 self._prev_state[state_key] = st
+                        elif tgt.startswith("key:"):
+                            # Keyboard key support for flight panel switches
+                            key_name = tgt.split(":", 1)[1]
+                            state_key = f"flightpanel.switch.{idx}"
+                            
+                            if mode == "toggle":
+                                # Toggle mode: pulse on state change
+                                prev_st = self._prev_state.get(state_key, None)
+                                
+                                if prev_st is not None and prev_st != st:
+                                    # State changed - check trigger condition
+                                    should_trigger = False
+                                    if trigger == "on_change":
+                                        should_trigger = True
+                                    elif trigger == "on_press" and st is True:
+                                        should_trigger = True
+                                    elif trigger == "on_release" and st is False:
+                                        should_trigger = True
+                                    
+                                    if should_trigger:
+                                        self._pulse_timers[("key", key_name)] = time.time() + (pulse_ms / 1000.0)
+                                        LOG.debug("flightpanel.switch.%d changed %s->%s (trigger:%s), pulsing key:%s for %dms", 
+                                                 idx, prev_st, st, trigger, key_name, pulse_ms)
+                                
+                                self._prev_state[state_key] = st
+                            else:
+                                # Direct mode: store state for later application
+                                self._prev_state[state_key] = st
                     if src.startswith("ch_throttle.axes") and device_name == "ch_throttle":
                         idx = int(src.split(".")[-1])
                         val = state.get("axes", {}).get(idx, 0.0)
@@ -155,6 +187,9 @@ class Mapper:
                         if tgt.startswith("button:"):
                             btn_id = int(tgt.split(":", 1)[1])
                             cmd.buttons[btn_id] = st
+                        elif tgt.startswith("key:"):
+                            key_name = tgt.split(":", 1)[1]
+                            cmd.keys[key_name] = st
                     if src.startswith("flightpanel.axis") and device_name == "flightpanel":
                         idx = int(src.split(".")[-1])
                         val = state.get("axes", {}).get(idx, 0.0)
@@ -221,15 +256,19 @@ class Mapper:
         # This runs on EVERY call, not just when flight panel events arrive
         current_time = time.time()
         expired_timers = []
-        for btn_id, end_time in self._pulse_timers.items():
+        for timer_id, end_time in self._pulse_timers.items():
             if current_time < end_time:
-                cmd.buttons[btn_id] = True
+                # Handle both button pulses (int) and key pulses (tuple)
+                if isinstance(timer_id, tuple) and timer_id[0] == "key":
+                    cmd.keys[timer_id[1]] = True
+                else:
+                    cmd.buttons[timer_id] = True
             else:
-                expired_timers.append(btn_id)
+                expired_timers.append(timer_id)
         
         # Clean up expired timers
-        for btn_id in expired_timers:
-            del self._pulse_timers[btn_id]
+        for timer_id in expired_timers:
+            del self._pulse_timers[timer_id]
         
         # Apply direct mode buttons from stored state (single and multiple inputs)
         # These need to persist even when no flight panel event is sent
@@ -291,6 +330,60 @@ class Mapper:
                                         break
                             cmd.buttons[btn_id] = all_true
                             LOG.debug("multi-input AND condition for button:%d = %s", btn_id, all_true)
+            
+            # Handle keyboard keys in direct mode
+            elif tgt and tgt.startswith("key:"):
+                mode = props.get("mode", "direct")
+                if mode == "direct":
+                    key_name = tgt.split(":", 1)[1]
+                    
+                    # Single input direct mode
+                    if src and not b.get("inputs"):
+                        if src.startswith("flightpanel.switch"):
+                            idx = int(src.split(".")[-1])
+                            state_key = f"flightpanel.switch.{idx}"
+                            if state_key in self._prev_state:
+                                cmd.keys[key_name] = self._prev_state[state_key]
+                    
+                    # Multiple inputs direct mode (AND logic or ALL_SAME logic)
+                    elif src_list:
+                        logic = props.get("logic", "and")  # "and" or "all_same"
+                        
+                        if logic == "all_same":
+                            # Fire when ALL inputs are true OR ALL inputs are false
+                            states = []
+                            for src_item in src_list:
+                                if src_item.startswith("flightpanel.switch"):
+                                    idx = int(src_item.split(".")[-1])
+                                    state_key = f"flightpanel.switch.{idx}"
+                                    # If state not yet set, default to False
+                                    states.append(self._prev_state.get(state_key, False))
+                            
+                            # Check if all states are the same
+                            if states:
+                                all_true = all(states)
+                                all_false = not any(states)
+                                cmd.keys[key_name] = all_true or all_false
+                                LOG.debug("multi-input ALL_SAME condition for key:%s = %s (all_true=%s, all_false=%s)", 
+                                         key_name, all_true or all_false, all_true, all_false)
+                            else:
+                                cmd.keys[key_name] = False
+                        else:
+                            # Default AND logic
+                            all_true = True
+                            for src_item in src_list:
+                                if src_item.startswith("flightpanel.switch"):
+                                    idx = int(src_item.split(".")[-1])
+                                    state_key = f"flightpanel.switch.{idx}"
+                                    # If state not yet set, default to False
+                                    if state_key not in self._prev_state:
+                                        all_true = False
+                                        break
+                                    if not self._prev_state[state_key]:
+                                        all_true = False
+                                        break
+                            cmd.keys[key_name] = all_true
+                            LOG.debug("multi-input AND condition for key:%s = %s", key_name, all_true)
         
         LOG.debug("mapped state -> %s", cmd)
         return cmd
