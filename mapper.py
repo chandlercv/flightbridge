@@ -79,11 +79,12 @@ class Mapper:
             state_with_device = {**state, "device": device_name}
             device_cmd = self.map_state_to_vjoy(state_with_device)
             
-            # Merge commands (buttons, axes, povs, keys)
+            # Merge commands (buttons, axes, povs, keys, leds)
             cmd.buttons.update(device_cmd.buttons)
             cmd.axes.update(device_cmd.axes)
             cmd.povs.update(device_cmd.povs)
             cmd.keys.update(device_cmd.keys)
+            cmd.leds.update(device_cmd.leds)
         
         return cmd
 
@@ -128,6 +129,9 @@ class Mapper:
                         elif tgt.startswith("key:"):
                             for key_name in self._key_names_from_target(tgt):
                                 cmd.keys[key_name] = st
+                        elif tgt.startswith("led:"):
+                            led_name = tgt.split(":", 1)[1]
+                            cmd.leds[led_name] = st
                     if src.startswith("x55.hat") and device_name == "x55":
                         idx = int(src.split(".")[-1])
                         hat_val = state.get("hats", {}).get(idx, (-1, -1))
@@ -246,6 +250,9 @@ class Mapper:
                         elif tgt.startswith("key:"):
                             for key_name in self._key_names_from_target(tgt):
                                 cmd.keys[key_name] = st
+                        elif tgt.startswith("led:"):
+                            led_name = tgt.split(":", 1)[1]
+                            cmd.leds[led_name] = st
                     if src.startswith("flightpanel.axis") and device_name == "flightpanel":
                         idx = int(src.split(".")[-1])
                         val = state.get("axes", {}).get(idx, 0.0)
@@ -429,6 +436,50 @@ class Mapper:
                             for key_name in key_names:
                                 cmd.keys[key_name] = all_true
                             LOG.debug("multi-input AND condition for keys %s = %s", key_names, all_true)
+        
+        # Handle LED outputs
+        for b in bindings:
+            src = b.get("input")
+            src_list = b.get("inputs", [src] if src else [])
+            tgt = b.get("target")
+            props = b.get("props", {})
+            
+            if tgt and tgt.startswith("led:"):
+                led_name = tgt.split(":", 1)[1]
+                mode = props.get("mode", "direct")
+                
+                # Single input direct mode
+                if src and not b.get("inputs"):
+                    st, _ = self._refresh_state_from_event(src, device_name, state)
+                    cmd.leds[led_name] = st
+                
+                # Multiple inputs direct mode (AND logic or ALL_SAME logic)
+                elif src_list:
+                    logic = props.get("logic", "and")
+                    
+                    if logic == "all_same":
+                        states = []
+                        for src_item in src_list:
+                            st, _ = self._refresh_state_from_event(src_item, device_name, state)
+                            states.append(st)
+                        
+                        if states:
+                            all_true = all(states)
+                            all_false = not any(states)
+                            cmd.leds[led_name] = all_true or all_false
+                            LOG.debug("multi-input ALL_SAME condition for led:%s = %s", led_name, all_true or all_false)
+                        else:
+                            cmd.leds[led_name] = False
+                    else:
+                        # Default AND logic
+                        all_true = True
+                        for src_item in src_list:
+                            st, _ = self._refresh_state_from_event(src_item, device_name, state)
+                            if not st:
+                                all_true = False
+                                break
+                        cmd.leds[led_name] = all_true
+                        LOG.debug("multi-input AND condition for led:%s = %s", led_name, all_true)
         
         LOG.debug("mapped state -> %s", cmd)
         return cmd

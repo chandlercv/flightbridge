@@ -85,22 +85,37 @@ class FlightPanelReader:
                 self._stop.wait(0.1)
 
     def _seed_initial_state(self):
-        """Attempt one immediate read to capture current switch positions.
+        """Query current switch positions using feature report.
 
-        Falls back to emitting an all-False state so downstream logic has a baseline
-        and multi-input bindings can evaluate before the first hardware change.
+        Feature reports allow us to query device state on demand without waiting for
+        a change event. Falls back to emitting an all-False state so downstream logic
+        has a baseline and multi-input bindings can evaluate before the first change.
         """
         if not self._device:
             return
+        
+        # Try feature report first (allows querying current state)
         try:
-            data = self._device.read(64, timeout_ms=100)
+            data = self._device.get_feature_report(0, 64)
             if data:
+                LOG.debug("FlightPanel: queried initial state via feature report: %s", ' '.join(f"{b:02x}" for b in data))
                 self._parse_and_emit(data)
                 return
         except Exception as e:
-            LOG.debug("FlightPanel: initial read failed: %s", e)
+            LOG.debug("FlightPanel: feature report query failed: %s", e)
+        
+        # Fallback: try a blocking read
+        try:
+            data = self._device.read(64, timeout_ms=500)
+            if data:
+                LOG.debug("FlightPanel: captured initial state via blocking read: %s", ' '.join(f"{b:02x}" for b in data))
+                self._parse_and_emit(data)
+                return
+        except Exception as e:
+            LOG.debug("FlightPanel: blocking read failed: %s", e)
 
-        # Fallback: emit empty state
+        # Final fallback: emit empty state
+        LOG.debug("FlightPanel: no initial state available, using baseline")
         self._emit_baseline_state()
 
     def _emit_baseline_state(self):
