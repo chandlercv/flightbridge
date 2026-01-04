@@ -40,9 +40,13 @@ class FlightPanelReader:
                 self._device = hid.device()
                 self._device.open(LOGITECH_VID, FLIGHT_PANEL_PID)
                 LOG.info("Flight Panel found, interface claimed")
+                # Try to seed state immediately so mappings have initial switch positions
+                self._seed_initial_state()
             except Exception as e:
                 LOG.warning("Flight Panel not found via HID (VID:%04x, PID:%04x): %s", LOGITECH_VID, FLIGHT_PANEL_PID, e)
                 self._device = None
+                # Emit a baseline all-false state so downstream logic has a starting point
+                self._emit_baseline_state()
         
         self._t = threading.Thread(target=self._loop, name="FlightPanelReader", daemon=True)
         self._t.start()
@@ -50,6 +54,8 @@ class FlightPanelReader:
             LOG.info("FlightPanelReader started (stub — hardware not found)")
         elif self._device is None:
             LOG.info("FlightPanelReader started (stub — hidapi not available)")
+            # In pure stub mode also seed a baseline so bindings can evaluate
+            self._emit_baseline_state()
         else:
             LOG.info("FlightPanelReader started (hardware mode)")
 
@@ -77,6 +83,35 @@ class FlightPanelReader:
             else:
                 # Stub mode: sleep to avoid busy loop
                 self._stop.wait(0.1)
+
+    def _seed_initial_state(self):
+        """Attempt one immediate read to capture current switch positions.
+
+        Falls back to emitting an all-False state so downstream logic has a baseline
+        and multi-input bindings can evaluate before the first hardware change.
+        """
+        if not self._device:
+            return
+        try:
+            data = self._device.read(64, timeout_ms=100)
+            if data:
+                self._parse_and_emit(data)
+                return
+        except Exception as e:
+            LOG.debug("FlightPanel: initial read failed: %s", e)
+
+        # Fallback: emit empty state
+        self._emit_baseline_state()
+
+    def _emit_baseline_state(self):
+        """Emit an all-false baseline state (once)."""
+        state = {
+            "device": "flightpanel",
+            "buttons": {idx: False for idx in range(20)},
+            "axes": {},
+            "hats": {},
+        }
+        self._emit(state)
 
     def _parse_and_emit(self, data):
         """Parse raw USB HID report from Flight Switch Panel.

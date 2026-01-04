@@ -247,6 +247,11 @@ class VJoyOutput:
             return
         
         try:
+            # Ensure we release keys that are currently pressed but not present in this command
+            for key_name, is_pressed in list(self._key_states.items()):
+                if is_pressed and key_name not in cmd.keys:
+                    cmd.keys[key_name] = False
+
             # Process each key in the command
             for key_name, should_press in cmd.keys.items():
                 pynput_key = self._get_pynput_key(key_name)
