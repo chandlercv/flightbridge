@@ -1,1 +1,1 @@
-- implement multiple inputs to toggle mode
+- finish working out landing gear leds

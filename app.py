@@ -12,6 +12,7 @@ from mapper import Mapper
 from vjoy.output import VJoyOutput
 from devices.x55_directinput import X55Reader
 from devices.flight_panel import FlightPanelReader
+from devices.flight_panel_leds import FlightPanelLEDControl
 from devices.ch_throttle import CHThrottleReader
 
 LOG = logging.getLogger("flightbridge")
@@ -58,11 +59,17 @@ def main():
     else:
         vjoy_devices = None
 
+    # Initialize LED controller for Flight Panel
+    led_controller = FlightPanelLEDControl()
+    if not led_controller.connect():
+        LOG.warning("Flight Panel LED control not available (device not found)")
+        led_controller = None
+
     # Support multiple vJoy devices for >32 buttons
     if vjoy_devices:
-        vjoy = VJoyOutput(hz=args.hz, device_ids=vjoy_devices)
+        vjoy = VJoyOutput(hz=args.hz, device_ids=vjoy_devices, led_controller=led_controller)
     else:
-        vjoy = VJoyOutput(args.vjoy_id, hz=args.hz)
+        vjoy = VJoyOutput(args.vjoy_id, hz=args.hz, led_controller=led_controller)
 
     x55 = X55Reader()
     panel = FlightPanelReader()
@@ -100,6 +107,9 @@ def main():
         x55.stop()
         panel.stop()
         ch_throttle.stop()
+        vjoy.stop()
+        if led_controller:
+            led_controller.disconnect()
         vjoy.stop()
 
 

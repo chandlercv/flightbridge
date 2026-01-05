@@ -88,7 +88,7 @@ if VJOY_AVAILABLE:
 
 
 class VJoyOutput:
-    def __init__(self, device_id: int = 1, hz: int = 60, device_ids: list = None):
+    def __init__(self, device_id: int = 1, hz: int = 60, device_ids: list = None, led_controller=None):
         """Initialize vJoy output
         
         Args:
@@ -96,11 +96,13 @@ class VJoyOutput:
             hz: Update frequency
             device_ids: List of vJoy device IDs to use (e.g., [1, 2] for 64 buttons)
                        If None, uses only device_id for 32 buttons
+            led_controller: Optional FlightPanelLEDControl instance for LED control
         """
         if device_ids is None:
             device_ids = [device_id]
         self.device_ids = device_ids
         self.hz = hz
+        self.led_controller = led_controller
         self._q = Queue(maxsize=4)
         self._t = None
         self._stop = threading.Event()
@@ -247,6 +249,11 @@ class VJoyOutput:
             return
         
         try:
+            # Ensure we release keys that are currently pressed but not present in this command
+            for key_name, is_pressed in list(self._key_states.items()):
+                if is_pressed and key_name not in cmd.keys:
+                    cmd.keys[key_name] = False
+
             # Process each key in the command
             for key_name, should_press in cmd.keys.items():
                 pynput_key = self._get_pynput_key(key_name)
@@ -288,8 +295,24 @@ class VJoyOutput:
         # Send keyboard commands first
         self._send_keyboard_keys(cmd)
         
+        # Handle LED commands if controller is available
+        if self.led_controller and cmd.leds:
+            try:
+                for led_name, state in cmd.leds.items():
+                    if led_name == "n_light":
+                        self.led_controller.set_n_light(state)
+                    elif led_name == "l_light":
+                        self.led_controller.set_l_light(state)
+                    elif led_name == "landing_gear":
+                        self.led_controller.set_landing_gear(state)
+                    else:
+                        LOG.debug("unknown led: %s", led_name)
+            except Exception:
+                LOG.exception("failed to send LED command")
+        
         if not any(self._acquired.values()):
-            LOG.debug("vjoy dry-run: axes=%s buttons=%s povs=%s keys=%s", cmd.axes, cmd.buttons, cmd.povs, cmd.keys)
+            LOG.debug("vjoy dry-run: axes=%s buttons=%s povs=%s keys=%s leds=%s", 
+                      cmd.axes, cmd.buttons, cmd.povs, cmd.keys, cmd.leds)
             return
 
         try:
