@@ -38,12 +38,12 @@ bindings:
   - input: "x55.button.9"
     target: "button:10"
   - input: "x55.button.10"
-    target: "button:11"
+    target: "key: c"
 
   - inputs: 
       - "x55.button.11"
       - "flightpanel.button.13"    
-    target: "button:12"
+    target: "key: t"
     props:
       mode: "toggle"
       logic: "and"       # Fire only when both are pressed (no pulse when both false)
@@ -51,7 +51,7 @@ bindings:
   - inputs: 
       - "x55.button.12"
       - "flightpanel.button.13"
-    target: "button:13"
+    target: "key: control key:t"
     props:
       mode: "toggle"
       logic: "and"       # Fire only when both are pressed (no pulse when both false)
@@ -59,22 +59,15 @@ bindings:
   - inputs: 
       - "x55.button.13"
       - "flightpanel.button.13"
-    target: "button:14"
+    target: "key: shift key:t"
     props:
       mode: "toggle"
       logic: "and"       # Fire only when both are pressed (no pulse when both false)
       pulse_ms: 100
   
+  # patrol mode
   - inputs: 
       - "x55.button.11"
-      - "flightpanel.button.14"
-    target: "key:c"
-    props:
-      mode: "toggle"
-      logic: "and"
-      pulse_ms: 50
-  - inputs: 
-      - "x55.button.12"
       - "flightpanel.button.14"
     target: "key:a"
     props:
@@ -82,15 +75,99 @@ bindings:
       logic: "and"
       pulse_ms: 50
   - inputs: 
+      - "x55.button.12"
+      - "flightpanel.button.14"
+    target: "key:i"
+    props:
+      mode: "toggle"
+      logic: "and"
+      pulse_ms: 50
+  - inputs: 
       - "x55.button.13"
       - "flightpanel.button.14"
-    target: "key:shift key:c"
+    target: "key:shift key:i"
     props:
       mode: "toggle"
       logic: "and"
       pulse_ms: 50
 
+#nan mode
+  - inputs: 
+      - "x55.button.11"
+      - "flightpanel.button.15"
+    target: "key:k"
+    props:
+      mode: "toggle"
+      logic: "and"
+      pulse_ms: 50
+  - inputs: 
+      - "x55.button.12"
+      - "flightpanel.button.15"
+    target: "key:shift key:k"
+    props:
+      mode: "toggle"
+      logic: "and"
+      pulse_ms: 50
+  - inputs: 
+      - "x55.button.13"
+      - "flightpanel.button.15"
+    target: "key:u"
+    props:
+      mode: "toggle"
+      logic: "and"
+      pulse_ms: 50
 
+  #defend base mode
+  - inputs: 
+      - "x55.button.11"
+      - "flightpanel.button.16"
+    target: "key:f"
+    props:
+      mode: "toggle"
+      logic: "and"
+      pulse_ms: 50
+  - inputs: 
+      - "x55.button.12"
+      - "flightpanel.button.16"
+    target: "key:shift key:o"
+    props:
+      mode: "toggle"
+      logic: "and"
+      pulse_ms: 50
+  - inputs: 
+      - "x55.button.13"
+      - "flightpanel.button.16"
+    target: "key:control key:f"
+    props:
+      mode: "toggle"
+      logic: "and"
+      pulse_ms: 50
+
+  #pod base mode
+  - inputs: 
+      - "x55.button.11"
+      - "flightpanel.button.16"
+    target: "key:shift key:b"
+    props:
+      mode: "toggle"
+      logic: "and"
+      pulse_ms: 50
+  - inputs: 
+      - "x55.button.12"
+      - "flightpanel.button.16"
+    target: "key:shift key:k"
+    props:
+      mode: "toggle"
+      logic: "and"
+      pulse_ms: 50
+  - inputs: 
+      - "x55.button.13"
+      - "flightpanel.button.16"
+    target: "key:b"
+    props:
+      mode: "toggle"
+      logic: "and"
+      pulse_ms: 50
   
   - input: "x55.hat.0"
     target: "pov:0"
@@ -128,13 +205,13 @@ bindings:
   
   # Flight Panel switches - toggle mode (momentary pulse on change)
   - input: "flightpanel.switch.2"
-    target: "button:27"
+    target: "key:1"
     props:
       mode: "toggle"
       pulse_ms: 100
 
   - input: "flightpanel.switch.3"
-    target: "button:28"
+    target: "key:2"
     props:
       mode: "toggle"
       pulse_ms: 100
@@ -146,7 +223,7 @@ bindings:
       pulse_ms: 100
 
   - input: "flightpanel.switch.5"
-    target: "button:30"
+    target: "key:0"
     props:
       mode: "toggle"
       pulse_ms: 100
@@ -176,44 +253,44 @@ bindings:
       logic: "all_same"  # Fires when ALL inputs are true OR ALL inputs are false
       pulse_ms: 100
       
-  - input: "flightpanel.switch.6"
-    target: "button:33"
+  - input: "flightpanel.button.6"
+    target: "button:11"
     props:
       mode: "toggle"
       pulse_ms: 100
 
   - input: "flightpanel.switch.7"
-    target: "button:34"
+    target: "button:12"
     props:
       mode: "toggle"
       pulse_ms: 100
 
   - input: "flightpanel.switch.8"
-    target: "button:35"
+    target: "button:13"
     props:
       mode: "toggle"
       pulse_ms: 100
 
   - input: "flightpanel.switch.9"
-    target: "button:36"
+    target: "button:14"
     props:
       mode: "toggle"
       pulse_ms: 100
 
   - input: "flightpanel.switch.10"
-    target: "button:37"
+    target: "button:27"
     props:
       mode: "toggle"
       pulse_ms: 100  
  
   - input: "flightpanel.switch.11"
-    target: "button:38"
+    target: "button:28"
     props:
       mode: "toggle"
       pulse_ms: 100
 
   - input: "flightpanel.switch.12"
-    target: "button:39"
+    target: "button:30"
     props:
       mode: "toggle"
       pulse_ms: 100

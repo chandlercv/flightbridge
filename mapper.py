@@ -58,21 +58,6 @@ class Mapper:
     def map_state_to_vjoy_full(self, all_states: dict) -> VJoyCommand:
         """Map accumulated state from all devices to vJoy command"""
         cmd = VJoyCommand()
-
-        # Refresh cached button states from all devices first so multi-input logic
-        # sees the latest values regardless of iteration order.
-        for device_name, state in all_states.items():
-            if device_name == "x55":
-                for idx, val in state.get("buttons", {}).items():
-                    self._prev_state[f"x55.button.{idx}"] = bool(val)
-            elif device_name == "flightpanel":
-                for idx, val in state.get("buttons", {}).items():
-                    val_bool = bool(val)
-                    self._prev_state[f"flightpanel.switch.{idx}"] = val_bool
-                    self._prev_state[f"flightpanel.button.{idx}"] = val_bool
-            elif device_name == "ch_throttle":
-                for idx, val in state.get("buttons", {}).items():
-                    self._prev_state[f"ch_throttle.button.{idx}"] = bool(val)
         
         # Process each device's state
         for device_name, state in all_states.items():
@@ -178,7 +163,8 @@ class Mapper:
                                 # Toggle mode: pulse on state change
                                 prev_st = self._prev_state.get(state_key, None)
                                 
-                                if prev_st is not None and prev_st != st:
+                                # Trigger if state changed (or if this is the first time and state is True)
+                                if prev_st != st:
                                     # State changed - check trigger condition
                                     should_trigger = False
                                     if trigger == "on_change":
@@ -206,7 +192,8 @@ class Mapper:
                                 # Toggle mode: pulse on state change
                                 prev_st = self._prev_state.get(state_key, None)
                                 
-                                if prev_st is not None and prev_st != st:
+                                # Trigger if state changed (or if this is the first time and state is True)
+                                if prev_st != st:
                                     # State changed - check trigger condition
                                     should_trigger = False
                                     if trigger == "on_change":
@@ -220,6 +207,76 @@ class Mapper:
                                         for key_name in key_names:
                                             self._pulse_timers[("key", key_name)] = time.time() + (pulse_ms / 1000.0)
                                         LOG.debug("flightpanel.switch.%d changed %s->%s (trigger:%s), pulsing keys %s for %dms", 
+                                                 idx, prev_st, st, trigger, key_names, pulse_ms)
+                                
+                                self._prev_state[state_key] = st
+                            else:
+                                # Direct mode: store state for later application
+                                self._prev_state[state_key] = st
+                                for key_name in key_names:
+                                    self._prev_state[f"key:{key_name}"] = st
+                    if src.startswith("flightpanel.button") and device_name == "flightpanel":
+                        idx = int(src.split(".")[-1])
+                        st = bool(state.get("buttons", {}).get(idx, False))
+                        
+                        # Get mapping mode and pulse duration
+                        mode = props.get("mode", "direct")  # "direct" or "toggle"
+                        pulse_ms = props.get("pulse_ms", 100)  # default 100ms pulse
+                        trigger = props.get("trigger", "on_change")  # "on_press", "on_release", or "on_change"
+                        
+                        if tgt.startswith("button:"):
+                            btn_id = int(tgt.split(":", 1)[1])
+                            state_key = f"flightpanel.button.{idx}"
+                            
+                            if mode == "toggle":
+                                # Toggle mode: pulse on state change
+                                prev_st = self._prev_state.get(state_key, None)
+                                LOG.debug(f"flightpanel.button.{idx} toggle check: prev_st={prev_st}, st={st}, tgt={tgt}")
+                                
+                                # Trigger if state changed (or if this is the first time and state is True)
+                                if prev_st != st:
+                                    # State changed - check trigger condition
+                                    should_trigger = False
+                                    if trigger == "on_change":
+                                        should_trigger = True
+                                    elif trigger == "on_press" and st is True:
+                                        should_trigger = True
+                                    elif trigger == "on_release" and st is False:
+                                        should_trigger = True
+                                    
+                                    if should_trigger:
+                                        self._pulse_timers[btn_id] = time.time() + (pulse_ms / 1000.0)
+                                        LOG.debug("flightpanel.button.%d changed %s->%s (trigger:%s), pulsing button:%d for %dms", 
+                                                 idx, prev_st, st, trigger, btn_id, pulse_ms)
+                                
+                                self._prev_state[state_key] = st
+                            else:
+                                # Direct mode: store state for later application
+                                self._prev_state[state_key] = st
+                        elif tgt.startswith("key:"):
+                            # Keyboard key support for flight panel buttons
+                            key_names = self._key_names_from_target(tgt)
+                            state_key = f"flightpanel.button.{idx}"
+                            
+                            if mode == "toggle":
+                                # Toggle mode: pulse on state change
+                                prev_st = self._prev_state.get(state_key, None)
+                                
+                                # Trigger if state changed (or if this is the first time and state is True)
+                                if prev_st != st:
+                                    # State changed - check trigger condition
+                                    should_trigger = False
+                                    if trigger == "on_change":
+                                        should_trigger = True
+                                    elif trigger == "on_press" and st is True:
+                                        should_trigger = True
+                                    elif trigger == "on_release" and st is False:
+                                        should_trigger = True
+                                    
+                                    if should_trigger:
+                                        for key_name in key_names:
+                                            self._pulse_timers[("key", key_name)] = time.time() + (pulse_ms / 1000.0)
+                                        LOG.debug("flightpanel.button.%d changed %s->%s (trigger:%s), pulsing keys %s for %dms", 
                                                  idx, prev_st, st, trigger, key_names, pulse_ms)
                                 
                                 self._prev_state[state_key] = st
