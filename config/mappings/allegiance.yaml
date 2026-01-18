@@ -38,11 +38,11 @@ bindings:
   - input: "x55.button.9"
     target: "button:10"
 
-# all and enemy
+# off: all and enemy
   - inputs: 
     - "x55.button.10"
     - "flightpanel.button.13"
-    target: "key: t"
+    target: "key:t"
     props:
       mode: "toggle"
       logic: "and"       # Fire only when both are pressed (no pulse when both false)
@@ -50,7 +50,7 @@ bindings:
   - inputs: 
       - "x55.button.11"
       - "flightpanel.button.13"    
-    target: "key: e"
+    target: "key:e"
     props:
       mode: "toggle"
       logic: "and"       # Fire only when both are pressed (no pulse when both false)
@@ -58,7 +58,7 @@ bindings:
   - inputs: 
       - "x55.button.12"
       - "flightpanel.button.13"
-    target: "key: control key:t"
+    target: "key:control key:t"
     props:
       mode: "toggle"
       logic: "and"       # Fire only when both are pressed (no pulse when both false)
@@ -66,17 +66,19 @@ bindings:
   - inputs: 
       - "x55.button.13"
       - "flightpanel.button.13"
-    target: "key: control key:e"
+    target: "key:control key:e"
     props:
       mode: "toggle"
       logic: "and"       # Fire only when both are pressed (no pulse when both false)
-      pulse_ms: 100
+      pulse_ms: 1200
   
-  # friendlys
+  # r: figs
   - inputs: 
     - "x55.button.10"
     - "flightpanel.button.14"
-    target: "key: f"
+    unless:
+      - "flightpanel.button.6"   # Prevent firing if button 14 is also pressed
+    target: "key:b"
     props:
       mode: "toggle"
       logic: "and"       # Fire only when both are pressed (no pulse when both false)
@@ -84,59 +86,167 @@ bindings:
   - inputs: 
       - "x55.button.11"
       - "flightpanel.button.14"
-    target: "key:d"
+    unless:
+      - "flightpanel.button.6"   # Prevent firing if button 14 is also pressed
+    target: "key:f"
+    props:
+      mode: "toggle"
+      logic: "and"       # Fire only when both are pressed (no pulse when both false)
+      pulse_ms: 100
+      unless:
+        - "flightpanel.button.6"
+  - inputs: 
+      - "x55.button.12"
+      - "flightpanel.button.14"
+    unless:
+      - "flightpanel.button.6"   # Prevent firing if button 14 is also pressed
+    target: "key:control key:b"
     props:
       mode: "toggle"
       logic: "and"
       pulse_ms: 50
   - inputs: 
-      - "x55.button.12"
+      - "x55.button.13"
       - "flightpanel.button.14"
+    unless:
+      - "flightpanel.button.6"   # Prevent firing if button 14 is also
     target: "key:control key:f"
     props:
       mode: "toggle"
       logic: "and"
       pulse_ms: 50
   - inputs: 
+    - "x55.button.10"
+    - "flightpanel.button.14"
+    - "flightpanel.button.6"
+    target: "key:f9"
+    props:
+      mode: "toggle"
+      logic: "and"       # Fire only when both are pressed (no pulse when both false)
+      pulse_ms: 100
+  - inputs: 
+      - "x55.button.11"
+      - "flightpanel.button.14"
+      - "flightpanel.button.6"
+    target: "key:f10"
+    props:
+      mode: "toggle"
+      logic: "and"       # Fire only when both are pressed (no pulse when both false)
+      pulse_ms: 100
+  - inputs: 
+      - "x55.button.12"
+      - "flightpanel.button.14"
+      - "flightpanel.button.6"
+    target: "key:control key:f9"
+    props:
+      mode: "toggle"
+      logic: "and"
+      pulse_ms: 50
+  - inputs: 
       - "x55.button.13"
       - "flightpanel.button.14"
-    target: "key:control key:d"
+      - "flightpanel.button.6"
+    target: "key:control key:f10"
     props:
       mode: "toggle"
       logic: "and"
       pulse_ms: 50
 
-#enemy
-  - inputs: 
-      - "x55.button.11"
+#l: utes
+  - inputs:  
+      - "x55.button.10"
       - "flightpanel.button.15"
+    unless:
+      - "flightpanel.button.6"   # Prevent firing if button 15 is also pressed
     target: "key:k"
     props:
       mode: "toggle"
       logic: "and"
       pulse_ms: 50
   - inputs: 
-      - "x55.button.12"
+      - "x55.button.11"
       - "flightpanel.button.15"
-    target: "key:shift key:k"
+    unless:
+      - "flightpanel.button.6"   # Prevent firing if button 15 is also pressed
+    target: "key:m"
     props:
       mode: "toggle"
       logic: "and"
       pulse_ms: 50
   - inputs: 
-      - "x55.button.13"
+      - "x55.button.12"
       - "flightpanel.button.15"
+    unless:
+      - "flightpanel.button.6"   # Prevent firing if button 15 is also pressed
     target: "key:control key:k"
     props:
       mode: "toggle"
       logic: "and"
       pulse_ms: 50
+  - inputs: 
+      - "x55.button.13"
+      - "flightpanel.button.15"
+    unless:
+      - "flightpanel.button.6"   # Prevent firing if button 15 is also
+    target: "key:control key:m"
+    props:
+      mode: "toggle"
+      logic: "and"
+      pulse_ms: 50
+  - inputs:  
+      - "x55.button.10"
+      - "flightpanel.button.15"
+      - "flightpanel.button.6"   # Prevent firing if button 15 is also pressed
+    target: "key:f11"
+    props:
+      mode: "toggle"
+      logic: "and"
+      pulse_ms: 50
+  - inputs: 
+      - "x55.button.11"
+      - "flightpanel.button.15"
+      - "flightpanel.button.6"   # Prevent firing if button 15 is also pressed
+    target: "key:f12"
+    props:
+      mode: "toggle"
+      logic: "and"
+      pulse_ms: 50
+  - inputs: 
+      - "x55.button.12"
+      - "flightpanel.button.15"
+      - "flightpanel.button.6"   # Prevent firing if button 15 is also pressed
+    target: "key:control key:f11"
+    props:
+      mode: "toggle"
+      logic: "and"
+      pulse_ms: 50
+  - inputs: 
+      - "x55.button.13"
+      - "flightpanel.button.15"
+      - "flightpanel.button.6"   # Prevent firing if button 15 is also
+    target: "key:control key:f12"
+    props:
+      mode: "toggle"
+      logic: "and"
+      pulse_ms: 50
 
-  #nav
+  #both: bases:
+  - inputs:  
+      - "x55.button.10"
+      - "flightpanel.button.16"
+    unless:
+      - "flightpanel.button.6"   # Prevent firing if button 15 is also pressed
+    target: "key:a"
+    props:
+      mode: "toggle"
+      logic: "and"
+      pulse_ms: 50
   - inputs: 
       - "x55.button.11"
       - "flightpanel.button.16"
-    target: "key:i"
+    unless:
+      - "flightpanel.button.6"   # Prevent firing if button 15 is also pressed
+    target: "key:q"
     props:
       mode: "toggle"
       logic: "and"
@@ -144,7 +254,9 @@ bindings:
   - inputs: 
       - "x55.button.12"
       - "flightpanel.button.16"
-    target: "key:shift key:i"
+    unless:
+      - "flightpanel.button.6"   # Prevent firing if button 15 is also pressed
+    target: "key:control key:a"
     props:
       mode: "toggle"
       logic: "and"
@@ -152,17 +264,62 @@ bindings:
   - inputs: 
       - "x55.button.13"
       - "flightpanel.button.16"
-    target: "key:control key:i"
+    unless:
+      - "flightpanel.button.6"   # Prevent firing if button 15 is also
+    target: "key:control key:q"
+    props:
+      mode: "toggle"
+      logic: "and"
+      pulse_ms: 50
+  - inputs:  
+      - "x55.button.10"
+      - "flightpanel.button.16"
+      - "flightpanel.button.6"   # Prevent firing if button 15 is also pressed
+    target: "key:a"
+    props:
+      mode: "toggle"
+      logic: "and"
+      pulse_ms: 50
+  - inputs: 
+      - "x55.button.11"
+      - "flightpanel.button.16"
+      - "flightpanel.button.6"   # Prevent firing if button 15 is also pressed
+    target: "key:w"
+    props:
+      mode: "toggle"
+      logic: "and"
+      pulse_ms: 50
+  - inputs: 
+      - "x55.button.12"
+      - "flightpanel.button.16"
+      - "flightpanel.button.6"   # Prevent firing if button 15 is also pressed
+    target: "key:control key:a"
+    props:
+      mode: "toggle"
+      logic: "and"
+      pulse_ms: 50
+  - inputs: 
+      - "x55.button.13"
+      - "flightpanel.button.16"
+      - "flightpanel.button.6"   # Prevent firing if button 15 is also
+    target: "key:control key:w"
     props:
       mode: "toggle"
       logic: "and"
       pulse_ms: 50
 
-  #friendly utes
+  #start: nav
+  - inputs: 
+      - "x55.button.10"
+      - "flightpanel.button.17"
+    target: "key:control key:j"
+    props:
+      mode: "toggle"
+      pulse_ms: 50
   - inputs: 
       - "x55.button.11"
       - "flightpanel.button.17"
-    target: "key:control key:o"
+    target: "key:control key:a"
     props:
       mode: "toggle"
       logic: "and"
@@ -170,7 +327,7 @@ bindings:
   - inputs: 
       - "x55.button.12"
       - "flightpanel.button.17"
-    target: "key:shift key:o"
+    target: "key:control key:j"
     props:
       mode: "toggle"
       logic: "and"
@@ -178,7 +335,7 @@ bindings:
   - inputs: 
       - "x55.button.13"
       - "flightpanel.button.17"
-    target: "key:control key:o"
+    target: "key:control key:a"
     props:
       mode: "toggle"
       logic: "and"
@@ -217,23 +374,30 @@ bindings:
     target: "button:25"
   - input: "ch_throttle.button.11"
     target: "button:26"
+
+  # Pulses button when both switches are in same state (both on OR both off)
+  - inputs: 
+      - "flightpanel.switch.0"
+      - "flightpanel.switch.1"
+    target: "key:control key:7"
+    props:
+      mode: "toggle"
+      logic: "and"  # Fires when ALL inputs are true
+      pulse_ms: 100
   
   # Flight Panel switches - toggle mode (momentary pulse on change)
   - input: "flightpanel.switch.2"
-    target: "key:1"
+    target: "key:control key:1"
     props:
       mode: "toggle"
       pulse_ms: 100
 
-  - input: "flightpanel.switch.3"
-    target: "key:2"
+  - inputs: 
+    - "flightpanel.switch.3"
+    - "flightpanel.switch.4"
+    target: "key:control key:8"
     props:
-      mode: "toggle"
-      pulse_ms: 100
-
-  - input: "flightpanel.switch.4"
-    target: "button:29"
-    props:
+      logic: "and"
       mode: "toggle"
       pulse_ms: 100
 
@@ -244,68 +408,51 @@ bindings:
       pulse_ms: 100
 
   - input: "flightpanel.switch.18"
-    target: "button:31"
+    target: "key:control key:5"
     props:
       mode: "toggle"
       pulse_ms: 100
       trigger: on_press
 
   - input: "flightpanel.switch.19"
-    target: "button:31"
+    target: "key:control key:5"
     props:
       mode: "toggle"
       pulse_ms: 100
       trigger: on_press
   
   # Flight Panel switches - toggle mode with all_same logic
-  # Pulses button when both switches are in same state (both on OR both off)
-  - inputs: 
-      - "flightpanel.switch.0"
-      - "flightpanel.switch.1"
-    target: "button:32"
-    props:
-      mode: "toggle"
-      logic: "and"  # Fires when ALL inputs are true
-      pulse_ms: 100
+
       
-  - input: "flightpanel.button.6"
+  - input: "flightpanel.switch.7"
     target: "button:11"
     props:
       mode: "toggle"
       pulse_ms: 100
 
-  - input: "flightpanel.switch.7"
+  - input: "flightpanel.switch.8"
     target: "button:12"
     props:
       mode: "toggle"
       pulse_ms: 100
 
-  - input: "flightpanel.switch.8"
+  - input: "flightpanel.switch.9"
     target: "button:13"
     props:
       mode: "toggle"
       pulse_ms: 100
 
-  - input: "flightpanel.switch.9"
-    target: "button:14"
-    props:
-      mode: "toggle"
-      pulse_ms: 100
-
   - input: "flightpanel.switch.10"
-    target: "button:27"
+    target: "button:14"
     props:
       mode: "toggle"
       pulse_ms: 100  
  
-  - input: "flightpanel.switch.11"
-    target: "button:28"
+  - inputs: 
+    - "flightpanel.switch.11"
+    - "flightpanel.switch.12"
+    target: "key:control key:s"
     props:
-      mode: "toggle"
-      pulse_ms: 100
-
-  - input: "flightpanel.switch.12"
-    target: "button:30"
-    props:
+      logic: "and"
       mode: "toggle"
       pulse_ms: 100

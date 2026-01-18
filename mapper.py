@@ -345,6 +345,15 @@ class Mapper:
                     else:
                         current_condition = all(states)
 
+                    # Gating: optional `unless` list (top-level binding key) must all be False
+                    unless_list = b.get("unless", [])
+                    if unless_list:
+                        unless_states = []
+                        for unless_item in unless_list:
+                            st_unless, _ = self._refresh_state_from_event(unless_item, device_name, state)
+                            unless_states.append(st_unless)
+                        current_condition = current_condition and (not any(unless_states))
+
                     if tgt.startswith("button:"):
                         btn_id = int(tgt.split(":", 1)[1])
                         multi_state_key = f"multi:{tgt}"
@@ -420,6 +429,7 @@ class Mapper:
                     # Multiple inputs direct mode (AND logic or ALL_SAME logic)
                     elif src_list:
                         logic = props.get("logic", "and")  # "and" or "all_same"
+                        unless_list = b.get("unless", [])
                         
                         if logic == "all_same":
                             # Fire when ALL inputs are true OR ALL inputs are false
@@ -432,9 +442,16 @@ class Mapper:
                             if states:
                                 all_true = all(states)
                                 all_false = not any(states)
-                                cmd.buttons[btn_id] = all_true or all_false
+                                condition = all_true or all_false
+                                if unless_list:
+                                    unless_states = []
+                                    for unless_item in unless_list:
+                                        st_unless, _ = self._refresh_state_from_event(unless_item, device_name, state)
+                                        unless_states.append(st_unless)
+                                    condition = condition and (not any(unless_states))
+                                cmd.buttons[btn_id] = condition
                                 LOG.debug("multi-input ALL_SAME condition for button:%d = %s (all_true=%s, all_false=%s)", 
-                                         btn_id, all_true or all_false, all_true, all_false)
+                                         btn_id, condition, all_true, all_false)
                             else:
                                 cmd.buttons[btn_id] = False
                         else:
@@ -445,7 +462,14 @@ class Mapper:
                                 if not st:
                                     all_true = False
                                     break
-                            cmd.buttons[btn_id] = all_true
+                            condition = all_true
+                            if unless_list:
+                                unless_states = []
+                                for unless_item in unless_list:
+                                    st_unless, _ = self._refresh_state_from_event(unless_item, device_name, state)
+                                    unless_states.append(st_unless)
+                                condition = condition and (not any(unless_states))
+                            cmd.buttons[btn_id] = condition
                             LOG.debug("multi-input AND condition for button:%d = %s", btn_id, all_true)
             
             # Handle keyboard keys in direct mode
@@ -463,6 +487,7 @@ class Mapper:
                     # Multiple inputs direct mode (AND logic or ALL_SAME logic)
                     elif src_list:
                         logic = props.get("logic", "and")  # "and" or "all_same"
+                        unless_list = b.get("unless", [])
                         
                         if logic == "all_same":
                             # Fire when ALL inputs are true OR ALL inputs are false
@@ -475,10 +500,17 @@ class Mapper:
                             if states:
                                 all_true = all(states)
                                 all_false = not any(states)
+                                condition = all_true or all_false
+                                if unless_list:
+                                    unless_states = []
+                                    for unless_item in unless_list:
+                                        st_unless, _ = self._refresh_state_from_event(unless_item, device_name, state)
+                                        unless_states.append(st_unless)
+                                    condition = condition and (not any(unless_states))
                                 for key_name in key_names:
-                                    cmd.keys[key_name] = all_true or all_false
+                                    cmd.keys[key_name] = condition
                                 LOG.debug("multi-input ALL_SAME condition for keys %s = %s (all_true=%s, all_false=%s)", 
-                                         key_names, all_true or all_false, all_true, all_false)
+                                         key_names, condition, all_true, all_false)
                             else:
                                 for key_name in key_names:
                                     cmd.keys[key_name] = False
@@ -490,8 +522,15 @@ class Mapper:
                                 if not st:
                                     all_true = False
                                     break
+                            condition = all_true
+                            if unless_list:
+                                unless_states = []
+                                for unless_item in unless_list:
+                                    st_unless, _ = self._refresh_state_from_event(unless_item, device_name, state)
+                                    unless_states.append(st_unless)
+                                condition = condition and (not any(unless_states))
                             for key_name in key_names:
-                                cmd.keys[key_name] = all_true
+                                cmd.keys[key_name] = condition
                             LOG.debug("multi-input AND condition for keys %s = %s", key_names, all_true)
         
         # Handle LED outputs
@@ -513,6 +552,7 @@ class Mapper:
                 # Multiple inputs direct mode (AND logic or ALL_SAME logic)
                 elif src_list:
                     logic = props.get("logic", "and")
+                    unless_list = b.get("unless", [])
                     
                     if logic == "all_same":
                         states = []
@@ -523,8 +563,15 @@ class Mapper:
                         if states:
                             all_true = all(states)
                             all_false = not any(states)
-                            cmd.leds[led_name] = all_true or all_false
-                            LOG.debug("multi-input ALL_SAME condition for led:%s = %s", led_name, all_true or all_false)
+                            condition = all_true or all_false
+                            if unless_list:
+                                unless_states = []
+                                for unless_item in unless_list:
+                                    st_unless, _ = self._refresh_state_from_event(unless_item, device_name, state)
+                                    unless_states.append(st_unless)
+                                condition = condition and (not any(unless_states))
+                            cmd.leds[led_name] = condition
+                            LOG.debug("multi-input ALL_SAME condition for led:%s = %s", led_name, condition)
                         else:
                             cmd.leds[led_name] = False
                     else:
@@ -535,7 +582,14 @@ class Mapper:
                             if not st:
                                 all_true = False
                                 break
-                        cmd.leds[led_name] = all_true
+                        condition = all_true
+                        if unless_list:
+                            unless_states = []
+                            for unless_item in unless_list:
+                                st_unless, _ = self._refresh_state_from_event(unless_item, device_name, state)
+                                unless_states.append(st_unless)
+                            condition = condition and (not any(unless_states))
+                        cmd.leds[led_name] = condition
                         LOG.debug("multi-input AND condition for led:%s = %s", led_name, all_true)
         
         LOG.debug("mapped state -> %s", cmd)
