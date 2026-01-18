@@ -7,6 +7,7 @@ import logging
 import signal
 import threading
 import time
+import os
 
 from mapper import Mapper
 from vjoy.output import VJoyOutput
@@ -14,6 +15,8 @@ from devices.x55_directinput import X55Reader
 from devices.flight_panel import FlightPanelReader
 from devices.flight_panel_leds import FlightPanelLEDControl
 from devices.ch_throttle import CHThrottleReader
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 LOG = logging.getLogger("flightbridge")
 
@@ -49,6 +52,45 @@ def main():
         logging.getLogger(logger_name).setLevel(logging.DEBUG)
 
     mapper = Mapper.load_profile(args.profile)
+    mapper_lock = threading.Lock()
+
+    def reload_mapper():
+        """Reload the mapping profile and atomically swap the active mapper."""
+        try:
+            new_mapper = Mapper.load_profile(args.profile)
+        except Exception as e:
+            LOG.error("Config reload failed: %s", e)
+            return
+        with mapper_lock:
+            nonlocal mapper
+            mapper = new_mapper
+        LOG.info("Config reloaded from %s", args.profile)
+
+    class _ConfigHandler(FileSystemEventHandler):
+        def __init__(self, target_path, on_reload, debounce_sec=0.3):
+            self._target = os.path.abspath(target_path)
+            self._last = 0.0
+            self._on_reload = on_reload
+            self._debounce = debounce_sec
+
+        def on_modified(self, event):
+            src = getattr(event, "src_path", "")
+            if os.path.abspath(src) != self._target:
+                return
+            now = time.monotonic()
+            if now - self._last < self._debounce:
+                return
+            self._last = now
+            self._on_reload()
+
+    def start_config_watcher(path):
+        watch_dir = os.path.dirname(os.path.abspath(path)) or "."
+        handler = _ConfigHandler(path, reload_mapper)
+        obs = Observer()
+        obs.schedule(handler, path=watch_dir, recursive=False)
+        obs.start()
+        LOG.info("Watching %s for changes", path)
+        return obs
 
     # Determine vJoy devices: CLI overrides profile, else default single
     profile_vjoy_devices = mapper.profile.get("vjoy_devices") if hasattr(mapper, "profile") else None
@@ -84,14 +126,17 @@ def main():
             # Merge this device's state into accumulated state
             device_name = state.get("device")
             accumulated_state[device_name] = state
-            
-            # Map the full accumulated state
+        # Map the full accumulated state using the current mapper atomically
+        with mapper_lock:
             cmd = mapper.map_state_to_vjoy_full(accumulated_state)
-            vjoy.apply(cmd)
+        vjoy.apply(cmd)
 
     x55.subscribe(on_state)
     panel.subscribe(on_state)
     ch_throttle.subscribe(on_state)
+
+    # Start watching the profile for changes
+    config_observer = start_config_watcher(args.profile)
 
     try:
         vjoy.start()
@@ -110,6 +155,9 @@ def main():
         vjoy.stop()
         if led_controller:
             led_controller.disconnect()
+        if config_observer:
+            config_observer.stop()
+            config_observer.join()
         vjoy.stop()
 
 

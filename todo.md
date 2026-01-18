@@ -1,1 +1,2 @@
 - finish working out landing gear leds
+- make eliminate switch from config vocac

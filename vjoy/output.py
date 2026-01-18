@@ -231,6 +231,9 @@ class VJoyOutput:
             'f1': Key.f1, 'f2': Key.f2, 'f3': Key.f3, 'f4': Key.f4,
             'f5': Key.f5, 'f6': Key.f6, 'f7': Key.f7, 'f8': Key.f8,
             'f9': Key.f9, 'f10': Key.f10, 'f11': Key.f11, 'f12': Key.f12,
+            'f13': Key.f13, 'f14': Key.f14, 'f15': Key.f15, 'f16': Key.f16,
+            'f17': Key.f17, 'f18': Key.f18, 'f19': Key.f19, 'f20': Key.f20,
+            'f21': Key.f21, 'f22': Key.f22, 'f23': Key.f23, 'f24': Key.f24,
         }
         
         if key_name_lower in key_map:
