@@ -197,7 +197,7 @@ bindings:
       - "x55.button.10"
       - "flightpanel.button.15"
       - "flightpanel.button.6"   # Prevent firing if button 15 is also pressed
-    target: "key:f11"
+    target: "key:u"
     props:
       mode: "toggle"
       logic: "and"
@@ -206,7 +206,7 @@ bindings:
       - "x55.button.11"
       - "flightpanel.button.15"
       - "flightpanel.button.6"   # Prevent firing if button 15 is also pressed
-    target: "key:f12"
+    target: "key:i"
     props:
       mode: "toggle"
       logic: "and"
@@ -215,7 +215,7 @@ bindings:
       - "x55.button.12"
       - "flightpanel.button.15"
       - "flightpanel.button.6"   # Prevent firing if button 15 is also pressed
-    target: "key:control key:f11"
+    target: "key:control key:u"
     props:
       mode: "toggle"
       logic: "and"
@@ -224,7 +224,7 @@ bindings:
       - "x55.button.13"
       - "flightpanel.button.15"
       - "flightpanel.button.6"   # Prevent firing if button 15 is also
-    target: "key:control key:f12"
+    target: "key:control key:i"
     props:
       mode: "toggle"
       logic: "and"
