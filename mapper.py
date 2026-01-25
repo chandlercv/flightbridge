@@ -13,6 +13,16 @@ class Mapper:
         self._prev_state = {}  # Track previous state for toggle mode detection
         self._pulse_timers = {}  # Track active pulses: {button_id: end_time}
 
+    def has_active_pulses(self) -> bool:
+        """Return True if any pulse timers are active."""
+        return bool(self._pulse_timers)
+
+    def next_pulse_expiration(self):
+        """Return the earliest pulse expiration timestamp, or None if none are active."""
+        if not self._pulse_timers:
+            return None
+        return min(self._pulse_timers.values())
+
     @staticmethod
     def _key_names_from_target(tgt: str):
         """Return list of key names from a target like 'key:space' or 'key:shift key:c'."""

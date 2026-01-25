@@ -35,6 +35,8 @@ def main():
                         help="Logging format string (default: %(levelname)s:%(name)s:%(message)s)")
     parser.add_argument("--debug-modules", nargs="*", default=[],
                         help="Modules to set to DEBUG level (e.g., 'panel', 'x55', 'throttle', 'vjoy', 'mapper')")
+    parser.add_argument("--debug-keys", action="store_true",
+                        help="Enable DEBUG logging for key presses only (vjoy module), without HID input logs")
     args = parser.parse_args()
 
     logging.basicConfig(level=getattr(logging, args.log_level), format=args.log_format)
@@ -50,6 +52,30 @@ def main():
     for module in args.debug_modules:
         logger_name = module_map.get(module, f"flightbridge.{module}")
         logging.getLogger(logger_name).setLevel(logging.DEBUG)
+
+    if args.debug_keys:
+        vjoy_logger = logging.getLogger("flightbridge.vjoy")
+        vjoy_logger.setLevel(logging.DEBUG)
+        vjoy_logger.propagate = False
+        vjoy_logger.handlers.clear()
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.DEBUG)
+        handler.setFormatter(logging.Formatter(args.log_format))
+
+        class _KeyDebugFilter(logging.Filter):
+            def filter(self, record: logging.LogRecord) -> bool:
+                if record.levelno >= logging.INFO:
+                    return True
+                message = record.getMessage()
+                return (
+                    message.startswith("keyboard:")
+                    or "Unknown key name" in message
+                    or "failed to send keyboard" in message
+                    or "failed to release keyboard" in message
+                )
+
+        handler.addFilter(_KeyDebugFilter())
+        vjoy_logger.addHandler(handler)
 
     mapper = Mapper.load_profile(args.profile)
     mapper_lock = threading.Lock()
@@ -120,6 +146,7 @@ def main():
     stop_event = threading.Event()
     state_lock = threading.Lock()
     accumulated_state = {}  # Store merged state from all devices
+    pulse_thread = None
 
     def on_state(state):
         with state_lock:
@@ -130,6 +157,32 @@ def main():
         with mapper_lock:
             cmd = mapper.map_state_to_vjoy_full(accumulated_state)
         vjoy.apply(cmd)
+
+    def pulse_loop():
+        # Drives pulse timers even when no new device events arrive
+        tick = 1.0 / float(args.hz)
+        while not stop_event.is_set():
+            with mapper_lock:
+                active_pulses = mapper.has_active_pulses()
+                next_expiration = mapper.next_pulse_expiration()
+
+            if not active_pulses:
+                time.sleep(tick)
+                continue
+
+            with state_lock:
+                state_snapshot = dict(accumulated_state)
+
+            with mapper_lock:
+                cmd = mapper.map_state_to_vjoy_full(state_snapshot)
+
+            vjoy.apply(cmd)
+
+            if next_expiration:
+                sleep_for = max(0.001, min(tick, next_expiration - time.time()))
+            else:
+                sleep_for = tick
+            time.sleep(sleep_for)
 
     x55.subscribe(on_state)
     panel.subscribe(on_state)
@@ -143,12 +196,17 @@ def main():
         x55.start()
         panel.start()
         ch_throttle.start()
+        pulse_thread = threading.Thread(target=pulse_loop, name="PulseLoop", daemon=True)
+        pulse_thread.start()
         LOG.info("flightbridge running — press Ctrl+C to stop")
         while not stop_event.is_set():
             time.sleep(0.5)
     except KeyboardInterrupt:
         LOG.info("shutdown requested")
     finally:
+        stop_event.set()
+        if pulse_thread:
+            pulse_thread.join(timeout=1.0)
         x55.stop()
         panel.stop()
         ch_throttle.stop()

@@ -157,9 +157,13 @@ bindings:
 ### Keys not being sent
 1. Make sure `pynput` is installed: `pip install pynput`
 2. Check the logs for keyboard errors:
-   ```bash
-   python app.py --profile allegiance.yaml --log-level DEBUG --debug-modules vjoy
-   ```
+  ```bash
+  python app.py --profile allegiance.yaml --debug-keys
+  ```
+  Or with the packaged EXE:
+  ```bash
+  .\dist\flightbridge.exe --profile .\config\mappings\allegiance.yaml --debug-keys
+  ```
 3. On Windows, make sure no administrator-required application has exclusive keyboard focus
 4. On macOS, you may need to grant accessibility permissions to the Python process
 

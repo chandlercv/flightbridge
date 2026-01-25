@@ -15,6 +15,54 @@ Quickstart:
 
 This repo contains initial scaffolding (readers, mapper, vjoy output) — more implementation coming.
 
+## Command-Line Options
+
+Run `app.py` (or the packaged EXE) with these switches:
+
+- `--profile <path>`: Required. YAML mapping profile to load.
+- `--vjoy-id <int>`: Primary vJoy device id (default: 1).
+- `--vjoy-devices <int...>`: List of vJoy device IDs (e.g., `1 2` for 64 buttons). Overrides `--vjoy-id`.
+- `--hz <int>`: vJoy update frequency (default: 60).
+- `--log-level <DEBUG|INFO|WARNING|ERROR|CRITICAL>`: Global log level (default: INFO).
+- `--log-format <format>`: Python logging format string.
+- `--debug-modules <module...>`: Set specific module loggers to DEBUG.
+  - Valid module names: `panel`, `x55`, `throttle`, `vjoy`, `mapper`.
+- `--debug-keys`: Console-only keyboard press/release logging (filters out vJoy axis/POV chatter).
+
+### Examples
+
+```bash
+python app.py --profile config/mappings/elite.yaml
+```
+
+```bash
+python app.py --profile config/mappings/elite.yaml --debug-keys
+```
+
+```bash
+python app.py --profile config/mappings/elite.yaml --log-level DEBUG --debug-modules mapper vjoy
+```
+
+## Available Inputs (Switches/Buttons)
+
+The mapper accepts device inputs using these patterns:
+
+- **Flight Switch Panel (Saitek/Logitech)**
+  - `flightpanel.switch.N` and `flightpanel.button.N` are aliases to the same underlying switch bit.
+  - Valid index range is `0..19`. Unused indices stay false; actual physical mapping can vary by unit.
+  - To discover which physical switch maps to which index, use [tests/test_flight_panel_capabilities.py](tests/test_flight_panel_capabilities.py) or [tests/test_button_capture.py](tests/test_button_capture.py).
+
+- **X-55 (DirectInput)**
+  - `x55.button.N` where `N` is `0..(num_buttons-1)`
+  - `x55.axes.N` where `N` is `0..(num_axes-1)`
+  - `x55.hat.N` where `N` is `0..(num_hats-1)`
+  - To inspect the counts and live values, use [tests/test_x55_dump.py](tests/test_x55_dump.py) or [tests/test_buttons_simple.py](tests/test_buttons_simple.py).
+
+- **CH Throttle (DirectInput)**
+  - `ch_throttle.axes.0` (throttle axis)
+  - `ch_throttle.button.N` where `N` is `0..11`
+  - To verify button indices, use [tests/test_ch_throttle_dump.py](tests/test_ch_throttle_dump.py).
+
 ## Mapping Props: `mode` and `logic`
 
 Bindings in YAML can include `props` to control how inputs drive outputs. The mapper currently supports:
