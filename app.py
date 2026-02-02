@@ -12,6 +12,7 @@ import os
 from mapper import Mapper
 from vjoy.output import VJoyOutput
 from devices.x55_directinput import X55Reader
+from devices.x52_directinput import X52Reader
 from devices.flight_panel import FlightPanelReader
 from devices.flight_panel_leds import FlightPanelLEDControl
 from devices.ch_throttle import CHThrottleReader
@@ -19,6 +20,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 LOG = logging.getLogger("flightbridge")
+STATE_LOG = logging.getLogger("flightbridge.state")
 
 
 def main():
@@ -37,6 +39,10 @@ def main():
                         help="Modules to set to DEBUG level (e.g., 'panel', 'x55', 'throttle', 'vjoy', 'mapper')")
     parser.add_argument("--debug-keys", action="store_true",
                         help="Enable DEBUG logging for key presses only (vjoy module), without HID input logs")
+    parser.add_argument("--debug-changes", action="store_true",
+                        help="Log only input state changes from previous state (suppresses raw state spam)")
+    parser.add_argument("--debug-axis-deadzone", type=float, default=0.01,
+                        help="Minimum axis delta to log in --debug-changes (default: 0.01)")
     args = parser.parse_args()
 
     logging.basicConfig(level=getattr(logging, args.log_level), format=args.log_format)
@@ -45,13 +51,46 @@ def main():
     module_map = {
         "panel": "flightbridge.panel",
         "x55": "flightbridge.x55",
+        "x52": "flightbridge.x52",
         "throttle": "flightbridge.ch_throttle",
         "vjoy": "flightbridge.vjoy",
         "mapper": "flightbridge.mapper",
+        "state": "flightbridge.state",
     }
     for module in args.debug_modules:
         logger_name = module_map.get(module, f"flightbridge.{module}")
         logging.getLogger(logger_name).setLevel(logging.DEBUG)
+
+    if args.debug_changes:
+        logging.getLogger().setLevel(logging.DEBUG)
+
+        class _SuppressRawStateFilter(logging.Filter):
+            def filter(self, record: logging.LogRecord) -> bool:
+                message = record.getMessage()
+                if "raw state ->" in message:
+                    return False
+                if message.startswith("FlightPanel: emit"):
+                    return False
+                return True
+
+        for logger_name in ("flightbridge.x55", "flightbridge.x52", "flightbridge.ch_throttle", "flightbridge.panel"):
+            logging.getLogger(logger_name).addFilter(_SuppressRawStateFilter())
+
+        class _SuppressMapperVjoyNoise(logging.Filter):
+            def filter(self, record: logging.LogRecord) -> bool:
+                message = record.getMessage()
+                if message.startswith("set axis "):
+                    return False
+                if message.startswith("set pov "):
+                    return False
+                if message.startswith("mapped hat "):
+                    return False
+                if message.startswith("mapped state ->"):
+                    return False
+                return True
+
+        logging.getLogger("flightbridge.vjoy").addFilter(_SuppressMapperVjoyNoise())
+        logging.getLogger("flightbridge.mapper").addFilter(_SuppressMapperVjoyNoise())
 
     if args.debug_keys:
         vjoy_logger = logging.getLogger("flightbridge.vjoy")
@@ -139,20 +178,81 @@ def main():
     else:
         vjoy = VJoyOutput(args.vjoy_id, hz=args.hz, led_controller=led_controller)
 
-    x55 = X55Reader()
-    panel = FlightPanelReader()
-    ch_throttle = CHThrottleReader()
+    def _extract_devices(profile: dict):
+        bindings = profile.get("bindings", []) if isinstance(profile, dict) else []
+        devices = set()
+        for binding in bindings:
+            src = binding.get("input")
+            if src:
+                devices.add(src.split(".", 1)[0])
+            for item in binding.get("inputs", []) or []:
+                if item:
+                    devices.add(item.split(".", 1)[0])
+        return {d for d in devices if d}
+
+    required_devices = _extract_devices(mapper.profile)
+    if not required_devices:
+        required_devices = {"x55", "x52", "flightpanel", "ch_throttle"}
+
+    readers = {}
+    if "x55" in required_devices:
+        readers["x55"] = X55Reader()
+    if "x52" in required_devices:
+        readers["x52"] = X52Reader()
+    if "flightpanel" in required_devices:
+        readers["flightpanel"] = FlightPanelReader()
+    if "ch_throttle" in required_devices:
+        readers["ch_throttle"] = CHThrottleReader()
+
+    LOG.info("Active device readers: %s", ", ".join(sorted(readers.keys())))
 
     stop_event = threading.Event()
     state_lock = threading.Lock()
     accumulated_state = {}  # Store merged state from all devices
     pulse_thread = None
 
+    def _diff_map(prev_map, curr_map, *, min_delta: float = 0.0):
+        changes = {}
+        all_keys = set(prev_map.keys()) | set(curr_map.keys())
+        for key in sorted(all_keys):
+            prev_val = prev_map.get(key)
+            curr_val = curr_map.get(key)
+            if prev_val != curr_val:
+                if min_delta and isinstance(prev_val, (int, float)) and isinstance(curr_val, (int, float)):
+                    if abs(curr_val - prev_val) < min_delta:
+                        continue
+                changes[key] = curr_val
+        return changes
+
+    def _diff_device_state(prev_state, curr_state, *, axis_deadzone: float = 0.0):
+        if prev_state is None:
+            return {
+                "axes": dict(curr_state.get("axes", {})),
+                "buttons": dict(curr_state.get("buttons", {})),
+                "hats": dict(curr_state.get("hats", {})),
+            }
+        axes_changes = _diff_map(prev_state.get("axes", {}), curr_state.get("axes", {}), min_delta=axis_deadzone)
+        button_changes = _diff_map(prev_state.get("buttons", {}), curr_state.get("buttons", {}))
+        hat_changes = _diff_map(prev_state.get("hats", {}), curr_state.get("hats", {}))
+        diff = {}
+        if axes_changes:
+            diff["axes"] = axes_changes
+        if button_changes:
+            diff["buttons"] = button_changes
+        if hat_changes:
+            diff["hats"] = hat_changes
+        return diff or None
+
     def on_state(state):
         with state_lock:
             # Merge this device's state into accumulated state
             device_name = state.get("device")
+            prev_state = accumulated_state.get(device_name)
             accumulated_state[device_name] = state
+        if args.debug_changes:
+            diff = _diff_device_state(prev_state, state, axis_deadzone=args.debug_axis_deadzone)
+            if diff:
+                STATE_LOG.debug("input change %s -> %s", device_name, diff)
         # Map the full accumulated state using the current mapper atomically
         with mapper_lock:
             cmd = mapper.map_state_to_vjoy_full(accumulated_state)
@@ -184,18 +284,16 @@ def main():
                 sleep_for = tick
             time.sleep(sleep_for)
 
-    x55.subscribe(on_state)
-    panel.subscribe(on_state)
-    ch_throttle.subscribe(on_state)
+    for reader in readers.values():
+        reader.subscribe(on_state)
 
     # Start watching the profile for changes
     config_observer = start_config_watcher(args.profile)
 
     try:
         vjoy.start()
-        x55.start()
-        panel.start()
-        ch_throttle.start()
+        for reader in readers.values():
+            reader.start()
         pulse_thread = threading.Thread(target=pulse_loop, name="PulseLoop", daemon=True)
         pulse_thread.start()
         LOG.info("flightbridge running — press Ctrl+C to stop")
@@ -207,9 +305,8 @@ def main():
         stop_event.set()
         if pulse_thread:
             pulse_thread.join(timeout=1.0)
-        x55.stop()
-        panel.stop()
-        ch_throttle.stop()
+        for reader in readers.values():
+            reader.stop()
         vjoy.stop()
         if led_controller:
             led_controller.disconnect()

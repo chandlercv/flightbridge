@@ -47,6 +47,11 @@ class Mapper:
             st = bool(state.get("buttons", {}).get(idx, False))
             self._prev_state[src_item] = st
             return st, True
+        if src_item.startswith("x52.button") and device_name == "x52":
+            idx = int(src_item.split(".")[-1])
+            st = bool(state.get("buttons", {}).get(idx, False))
+            self._prev_state[src_item] = st
+            return st, True
         if (src_item.startswith("flightpanel.switch") or src_item.startswith("flightpanel.button")) and device_name == "flightpanel":
             idx = int(src_item.split(".")[-1])
             st = bool(state.get("buttons", {}).get(idx, False))
@@ -114,6 +119,18 @@ class Mapper:
                         if tgt.startswith("axis:"):
                             axis_name = tgt.split(":", 1)[1]
                             cmd.axes[axis_name] = val
+                    if src.startswith("x52.axes") and device_name == "x52":
+                        idx = int(src.split(".")[-1])
+                        val = state.get("axes", {}).get(idx, 0.0)
+                        val = float(val)
+                        if props.get("invert"):
+                            val = -val
+                        val = val * float(props.get("scale", 1.0))
+                        # clamp
+                        val = max(-1.0, min(1.0, val))
+                        if tgt.startswith("axis:"):
+                            axis_name = tgt.split(":", 1)[1]
+                            cmd.axes[axis_name] = val
                     if src.startswith("x55.button") and device_name == "x55":
                         idx = int(src.split(".")[-1])
                         st = bool(state.get("buttons", {}).get(idx, False))
@@ -127,7 +144,49 @@ class Mapper:
                         elif tgt.startswith("led:"):
                             led_name = tgt.split(":", 1)[1]
                             cmd.leds[led_name] = st
+                    if src.startswith("x52.button") and device_name == "x52":
+                        idx = int(src.split(".")[-1])
+                        st = bool(state.get("buttons", {}).get(idx, False))
+                        self._prev_state[src] = st
+                        if tgt.startswith("button:"):
+                            btn_id = int(tgt.split(":", 1)[1])
+                            cmd.buttons[btn_id] = st
+                        elif tgt.startswith("key:"):
+                            for key_name in self._key_names_from_target(tgt):
+                                cmd.keys[key_name] = st
+                        elif tgt.startswith("led:"):
+                            led_name = tgt.split(":", 1)[1]
+                            cmd.leds[led_name] = st
                     if src.startswith("x55.hat") and device_name == "x55":
+                        idx = int(src.split(".")[-1])
+                        hat_val = state.get("hats", {}).get(idx, (-1, -1))
+                        # pygame hat is tuple (x, y) like (-1, -1), (0, 1), (1, 0), etc.
+                        # convert to degrees: -1 = centered, 0 = up, 90 = right, 180 = down, 270 = left
+                        if hat_val == (0, 0):
+                            deg = -1  # centered
+                        elif hat_val == (0, 1):
+                            deg = 0  # up
+                        elif hat_val == (1, 1):
+                            deg = 45  # up-right
+                        elif hat_val == (1, 0):
+                            deg = 90  # right
+                        elif hat_val == (1, -1):
+                            deg = 135  # down-right
+                        elif hat_val == (0, -1):
+                            deg = 180  # down
+                        elif hat_val == (-1, -1):
+                            deg = 225  # down-left
+                        elif hat_val == (-1, 0):
+                            deg = 270  # left
+                        elif hat_val == (-1, 1):
+                            deg = 315  # up-left
+                        else:
+                            deg = -1  # default centered
+                        if tgt.startswith("pov:"):
+                            pov_id = int(tgt.split(":", 1)[1])
+                            cmd.povs[pov_id] = deg
+                            LOG.debug("mapped hat %s -> pov %d (%s -> %d°)", hat_val, pov_id, hat_val, deg)
+                    if src.startswith("x52.hat") and device_name == "x52":
                         idx = int(src.split(".")[-1])
                         hat_val = state.get("hats", {}).get(idx, (-1, -1))
                         # pygame hat is tuple (x, y) like (-1, -1), (0, 1), (1, 0), etc.

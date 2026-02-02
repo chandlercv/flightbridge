@@ -26,7 +26,7 @@ Run `app.py` (or the packaged EXE) with these switches:
 - `--log-level <DEBUG|INFO|WARNING|ERROR|CRITICAL>`: Global log level (default: INFO).
 - `--log-format <format>`: Python logging format string.
 - `--debug-modules <module...>`: Set specific module loggers to DEBUG.
-  - Valid module names: `panel`, `x55`, `throttle`, `vjoy`, `mapper`.
+  - Valid module names: `panel`, `x55`, `x52`, `throttle`, `vjoy`, `mapper`.
 - `--debug-keys`: Console-only keyboard press/release logging (filters out vJoy axis/POV chatter).
 
 ### Examples
@@ -57,6 +57,12 @@ The mapper accepts device inputs using these patterns:
   - `x55.axes.N` where `N` is `0..(num_axes-1)`
   - `x55.hat.N` where `N` is `0..(num_hats-1)`
   - To inspect the counts and live values, use [tests/test_x55_dump.py](tests/test_x55_dump.py) or [tests/test_buttons_simple.py](tests/test_buttons_simple.py).
+
+- **X-52 (DirectInput)**
+  - `x52.button.N` where `N` is `0..(num_buttons-1)`
+  - `x52.axes.N` where `N` is `0..(num_axes-1)`
+  - `x52.hat.N` where `N` is `0..(num_hats-1)`
+  - To inspect the counts and live values, use [tests/test_x55_dump.py](tests/test_x55_dump.py).
 
 - **CH Throttle (DirectInput)**
   - `ch_throttle.axes.0` (throttle axis)
